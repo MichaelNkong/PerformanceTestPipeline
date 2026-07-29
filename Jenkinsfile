@@ -1,0 +1,54 @@
+pipeline {
+
+    agent any
+
+    environment {
+        JMETER_HOME = "C:\\Users\\Kunde\\Downloads\\apache-jmeter-5.6.3\\apache-jmeter-5.6.3"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        
+        stage('Run JMeter Test') {
+            steps {
+                sh '''
+                jmeter -n \
+                -t Tests/Testplan.jmx \
+                -l results.jtl \
+                -e \
+                -o jmeter-report
+                '''
+            }
+        }
+
+        stage('Publish JMeter Report') {
+            steps {
+                publishHTML([
+                    allowMissing: false,
+                    alwaysLinkToLastBuild: true,
+                    keepAll: true,
+                    reportDir: 'jmeter-report',
+                    reportFiles: 'index.html',
+                    reportName: 'JMeter HTML Report'
+                ])
+            }
+        }
+
+        stage('Archive Results') {
+            steps {
+                archiveArtifacts artifacts: 'results.jtl'
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "JMeter test finished"
+        }
+    }
+}
